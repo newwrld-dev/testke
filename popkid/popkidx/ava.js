@@ -1,4 +1,4 @@
-import { generateAvatar } from '../../inconnu/generateAvatar.js';
+import { generateAvatar } from '../../popkid/generateAvatar.js';
 import config from '../../config.cjs';
 
 const avatarCmd = async (m, conn) => {

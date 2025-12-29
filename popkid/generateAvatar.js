@@ -5,7 +5,7 @@
  * @param {string} style - Le style d'avatar (ex: "pixel", "bottts", "adventurer")
  * @returns {string} URL de l’avatar SVG généré
  */
-export const generateAvatar = (name = "inconnu", style = "adventurer") => {
+export const generateAvatar = (name = "popkid", style = "adventurer") => {
   // Format PNG pour compatibilité avec WhatsApp
   return `https://api.dicebear.com/7.x/${style}/png?seed=${encodeURIComponent(name)}`;
 };

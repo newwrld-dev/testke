@@ -1,85 +1,72 @@
 import fs from 'fs';
 import path from 'path';
-import config from '../../config.cjs'; // Ensure this matches your project setup
-
-const ownerNumbers = ['254732297194@s.whatsapp.net'];
+import config from '../../config.cjs';
 
 const allCmdsCommand = async (m, sock) => {
   const prefix = config.PREFIX;
-  const cmd = m.body.startsWith(prefix)
-    ? m.body.slice(prefix.length).split(' ')[0].toLowerCase()
-    : '';
-  
-  if (cmd === "allcmds") {
-    const folderPath = path.resolve(process.cwd(), '../popkid/popkidx');
-// 
-    // Ensure the folder exists
-  // Check if the sender is an owner
-  if (!ownerNumbers.includes(m.sender)) {
-    await sock.sendMessage(
+
+  if (!m.body?.startsWith(prefix)) return;
+
+  const cmd = m.body.slice(prefix.length).trim().split(' ')[0].toLowerCase();
+
+  if (cmd !== 'allcmds') return;
+
+  // ✅ Deployer / Owner JID
+  const ownerJid = config.OWNER_NUMBER + '@s.whatsapp.net';
+
+  // ❌ Block non-owner
+  if (m.sender !== ownerJid) {
+    await m.React('❌');
+    return sock.sendMessage(
+      m.from,
+      { text: '❌ Only the bot owner can use this command.' },
+      { quoted: m }
+    );
+  }
+
+  const folderPath = path.resolve(process.cwd(), '../popkid/popkidx');
+
+  // Check folder exists
+  if (!fs.existsSync(folderPath)) {
+    await m.React('❌');
+    return sock.sendMessage(
+      m.from,
+      { text: `❌ Folder not found.` },
+      { quoted: m }
+    );
+  }
+
+  try {
+    const files = fs.readdirSync(folderPath);
+    const jsFiles = files.filter(file => file.endsWith('.js'));
+
+    if (!jsFiles.length) {
+      await m.React('❌');
+      return sock.sendMessage(
+        m.from,
+        { text: '❌ No command files found.' },
+        { quoted: m }
+      );
+    }
+
+    await m.React('✅');
+    return sock.sendMessage(
       m.from,
       {
-        text: 'You are not authorized to use this command.',
+        text: `*ʜᴇʀᴇ ᴀʀᴇ ᴘᴏᴘᴋɪᴅ ᴍᴅ ᴘʟᴜɢɪɴ ғᴏʟᴅᴇʀs*\n\n${jsFiles.join('\n')}`,
       },
       { quoted: m }
     );
-    return;
-  }
-    if (!fs.existsSync(folderPath)) {
-      await m.React('❌'); // React with error icon
-      return sock.sendMessage(
-        m.from,
-        {
-          text: `❌ Folder ${folderPath} not found. Make sure it exists.`,
-        },
-        { quoted: m }
-      );
-    }
 
-    try {
-      // Read all files in the folder
-      const files = fs.readdirSync(folderPath);
-
-      // Filter out non-JS files
-      const jsFiles = files.filter(file => file.endsWith('.js'));
-
-      if (jsFiles.length === 0) {
-        await m.React('❌'); // React with error icon
-        return sock.sendMessage(
-          m.from,
-          {
-            text: '❌ No command files found in the folder.',
-          },
-          { quoted: m }
-        );
-      }
-
-      // List all .js files
-      const fileList = jsFiles.join('\n');
-
-      await m.React('✅'); // React with success icon
-      sock.sendMessage(
-        m.from,
-        {
-          text: `*ʜᴇʀᴇ ᴀʀᴇ ᴘᴏᴘᴋɪᴅ ᴍᴅ ᴘʟᴜɢɪɴ ғᴏʟᴅᴇʀs*\n\n${fileList}`,
-        },
-        { quoted: m }
-      );
-    } catch (err) {
-      console.error('Error reading the folder:', err.message);
-      await m.React('❌'); // React with error icon
-      sock.sendMessage(
-        m.from,
-        {
-          text: `❌ Failed to list the files: ${err.message}`,
-        },
-        { quoted: m }
-      );
-    }
+  } catch (err) {
+    console.error(err);
+    await m.React('❌');
+    return sock.sendMessage(
+      m.from,
+      { text: '❌ Failed to read command folder.' },
+      { quoted: m }
+    );
   }
 };
 
 export default allCmdsCommand;
-
-// after using mah codes go suck your mouth 👄 
-        

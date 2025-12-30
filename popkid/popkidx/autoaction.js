@@ -1,10 +1,10 @@
-import config from '../config.cjs';
+const config = require('../config.cjs');
 
 async function handleCommand(m, gss) {
     try {
         if (!m || !m.key) return;
 
-        const sender = m.sender || m.key.remoteJid; // Ensure sender is always defined
+        const sender = m.sender || m.key.remoteJid;
 
         if (config.AUTO_TYPING && m.from) {
             gss.sendPresenceUpdate("composing", m.from);
@@ -15,7 +15,10 @@ async function handleCommand(m, gss) {
         }
 
         if (m.from) {
-            gss.sendPresenceUpdate(config.ALWAYS_ONLINE ? 'available' : 'unavailable', m.from);
+            gss.sendPresenceUpdate(
+                config.ALWAYS_ONLINE ? 'available' : 'unavailable',
+                m.from
+            );
         }
 
         if (config.AUTO_READ) {
@@ -25,10 +28,10 @@ async function handleCommand(m, gss) {
         if (config.AUTO_BLOCK && sender?.startsWith('212')) {
             await gss.updateBlockStatus(sender, 'block');
         }
-        
+
     } catch (error) {
         console.error('Error in autoaction.js:', error);
     }
 }
 
-export default handleCommand;
+module.exports = handleCommand;

@@ -1,0 +1,293 @@
+import config from '../../config.cjs';
+
+// Variable globale à définir au lancement du bot, ex:
+// export const startTime = Date.now();
+// ou dans ce fichier (mais mieux en dehors pour garder la valeur persistante)
+const startTime = Date.now();
+
+const formatRuntime = (ms) => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}h ${minutes}m ${seconds}s`;
+};
+
+const menu = async (m, sock) => {
+  const prefix = config.PREFIX;
+  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
+  const text = m.body.slice(prefix.length + cmd.length).trim();
+
+  if (cmd === "menu") {
+    const start = new Date().getTime();
+    await m.React('🪆');
+    const end = new Date().getTime();
+    const responseTime = (end - start) / 1000;
+
+    // Récupérer runtime
+    const now = Date.now();
+    const runtime = formatRuntime(now - startTime);
+
+    // Récupérer mode selon utilisateur - ADAPTE CETTE PARTIE SELON TON CODE
+    // Exemple fictif:
+    const mode = m.isGroup ? "public" : "private"; // OU selon ta logique
+
+    // Récupérer nom du propriétaire
+    const ownerName = config.OWNER_NAME || "ᴘᴏᴘᴋɪᴅ ᴍᴅ";
+
+    let profilePictureUrl = 'https://files.catbox.moe/syekq2.jpg'; // image par défaut
+    try {
+      const pp = await sock.profilePictureUrl(m.sender, 'image');
+      if (pp) {
+        profilePictureUrl = pp;
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile picture:", error);
+    }
+
+    const menuText = `
+╭───────────────⭓
+│ ʙᴏᴛ : *ᴘᴏᴘᴋɪᴅ ᴍᴅ*
+│ ʀᴜɴᴛɪᴍᴇ : ${runtime}
+│ ᴍᴏᴅᴇ : ${mode}
+│ ᴘʀᴇғɪx : ${prefix}
+│ ᴏᴡɴᴇʀ : ${ownerName}
+│ ᴅᴇᴠ : *ᴘᴏᴘᴋɪᴅ ᴍᴅ*
+│ ᴠᴇʀ : *𝟸.𝟶.𝟶*
+╰───────────────⭓
+───────────────────
+ᴘᴏᴘᴋɪᴅ ᴍᴅ
+───────────────────
+⭓──────────────────⭓『 𝐏𝐎𝐏𝐊𝐈𝐃 𝐌𝐄𝐍𝐔 』
+│ ⬡ menu
+│ ⬡ bugmenu
+│ ⬡ speed
+│ ⬡ alive
+│ ⬡ sudo
+│ ⬡ addpremium
+│ ⬡ dev
+│ ⬡ allvar
+│ ⬡ ping
+│ ⬡ owner
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐎𝐖𝐍𝐄𝐑 𝐂𝐌𝐃 』
+│ ⬡ join
+│ ⬡ autoread
+│ ⬡ deploy 
+│ ⬡ pair
+│ ⬡ leave
+│ ⬡ jid
+│ ⬡ autostatusview
+│ ⬡ autotyping
+│ ⬡ autoblock
+│ ⬡ autorecording
+│ ⬡ autosticker
+│ ⬡ antisticker
+│ ⬡ antibugs
+│ ⬡ statusreply
+│ ⬡ restart
+│ ⬡ host
+│ ⬡ version
+│ ⬡ block
+│ ⬡ unblock
+│ ⬡ update
+│ ⬡ anticall
+│ ⬡ antidelete
+│ ⬡ upload
+│ ⬡ vv
+│ ⬡ setstatusmsg
+│ ⬡ allcmds
+│ ⬡ calculater 
+│ ⬡ alwaysonline
+│ ⬡ delete
+│ ⬡ vv2
+│ ⬡ setprefix
+│ ⬡ setownername
+│ ⬡ Profile
+│ ⬡ repo
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐀𝐈 𝐂𝐌𝐃 』
+│ ⬡ ai
+│ ⬡ bug
+│ ⬡ Bot
+│ ⬡ report
+│ ⬡ gemini
+│ ⬡ chatbot
+│ ⬡ gpt
+│ ⬡ lydia
+│ ⬡ inconnu-ai
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐂𝐎𝐍𝐕𝐄𝐑𝐓𝐄𝐑 𝐂𝐌𝐃 』
+│ ⬡ attp
+│ ⬡ toimage
+│ ⬡ gimage
+│ ⬡ mp3
+│ ⬡ ss
+│ ⬡ fancy
+│ ⬡ url
+│ ⬡ url2
+│ ⬡ shorten
+│ ⬡ sticker
+│ ⬡ take
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐒𝐄𝐀𝐑𝐂𝐇 𝐂𝐌𝐃 』
+│ ⬡ google
+│ ⬡ play 
+│ ⬡ video 
+│ ⬡ song
+│ ⬡ mediafire
+│ ⬡ quranvideo
+│ ⬡ quraimage
+│ ⬡ facebook
+│ ⬡ instagram
+│ ⬡ tiktok
+│ ⬡ lyrics
+│ ⬡ ytsearch
+│ ⬡ app
+│ ⬡ bing
+│ ⬡ ipstalk
+│ ⬡ imdb
+│ ⬡ pinterest
+│ ⬡ githubstalk
+│ ⬡ image
+│ ⬡ ringtone
+│ ⬡ playstore
+│ ⬡ shazam
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐅𝐔𝐍 𝐂𝐌𝐃 』
+│ ⬡ getpp
+│ ⬡ insult
+│ ⬡ goodnight
+│ ⬡ goodmorning
+│ ⬡ love
+│ ⬡ superhero
+│ ⬡ Dare
+│ ⬡ avatar
+│ ⬡ wcg
+│ ⬡ joke
+│ ⬡ ttt
+│ ⬡ yesorno
+│ ⬡ connect4
+│ ⬡ rank
+│ ⬡ quizz
+│ ⬡ movie
+│ ⬡ flirt
+│ ⬡ givetext
+│ ⬡ roast
+│ ⬡ anime
+│ ⬡ profile
+│ ⬡ ebinary
+│ ⬡ fetch
+│ ⬡ qc
+│ ⬡ couple
+│ ⬡ poll
+│ ⬡ couple
+│ ⬡ emojimix
+│ ⬡ score
+│ ⬡ toqr
+│ ⬡ ebinary
+│ ⬡ tempmail
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐆𝐑𝐎𝐔𝐏 𝐂𝐌𝐃 』
+│ ⬡ kickall
+│ ⬡ kickall2
+│ ⬡ Tagadmin
+│ ⬡ acceptall
+│ ⬡ remove
+│ ⬡ tagall
+│ ⬡ hidetag
+│ ⬡ forward
+│ ⬡ getall
+│ ⬡ group close
+│ ⬡ group open
+│ ⬡ add
+│ ⬡ vcf
+│ ⬡ left
+│ ⬡ promoteall
+│ ⬡ demoteall
+│ ⬡ setdescription
+│ ⬡ linkgc
+│ ⬡ antilink2
+│ ⬡ antilink
+│ ⬡ antisticker
+│ ⬡ antispam
+│ ⬡ create
+│ ⬡ setname
+│ ⬡ promote
+│ ⬡ demote
+│ ⬡ groupinfo
+│ ⬡ balance
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐇𝐄𝐍𝐓𝐀𝐈.𝐂𝐌𝐃 』
+│ ⬡ hneko
+│ ⬡ trap
+│ ⬡ hwaifu
+│ ⬡ hentai
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐅𝐗 𝐂𝐌𝐃 』
+│ ⬡ earrape
+│ ⬡ deep
+│ ⬡ blown
+│ ⬡ bass
+│ ⬡ nightcore
+│ ⬡ fat
+│ ⬡ fast
+│ ⬡ robot
+│ ⬡ tupai
+│ ⬡ smooth
+│ ⬡ slow
+│ ⬡ reverse
+╰──────────────────⭓
+⭓──────────────────⭓『 𝐑𝐄𝐀𝐂𝐓𝐈𝐎𝐍𝐒 』
+│ ⬡ bonk
+│ ⬡ bully
+│ ⬡ yeet
+│ ⬡ slap
+│ ⬡ nom
+│ ⬡ poke
+│ ⬡ awoo
+│ ⬡ wave
+│ ⬡ smile
+│ ⬡ dance
+│ ⬡ smug
+│ ⬡ blush
+│ ⬡ cringe
+│ ⬡ sad
+│ ⬡ happy
+│ ⬡ shinobu
+│ ⬡ cuddle
+│ ⬡ glomp
+│ ⬡ handhold
+│ ⬡ highfive
+│ ⬡ yeet
+│ ⬡ kick
+│ ⬡ kill
+│ ⬡ kiss
+│ ⬡ cry
+│ ⬡ bite
+│ ⬡ lick
+│ ⬡ pat
+│ ⬡ hug
+╰──────────────────⭓
+───────────────────⭓
+🥰𝐏𝐎𝐏𝐊𝐈𝐃 𝐌𝐃🥰
+───────────────────⭓
+`;
+
+    await sock.sendMessage(m.from, {
+      image: { url: profilePictureUrl },
+      caption: menuText.trim(),
+      contextInfo: {
+        forwardingScore: 5,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterName: "ᴘᴏᴘᴋɪᴅ ᴍᴅ",
+          newsletterJid: "120363289379419860@newsletter",
+        },
+      }
+    }, { quoted: m });
+  }
+};
+
+export default menu;
+          

@@ -1,19 +1,35 @@
 import axios from 'axios';
 import config from '../../config.cjs';
 
-// Main command function
 const chatbotcommand = async (m, Matrix) => {
+    // 🚫 Ignore duplicate message IDs
+    if (!m.key?.id) return;
+    if (global.processedMessages.has(m.key.id)) return;
+    global.processedMessages.add(m.key.id);
+
+    // prevent memory leak
+    setTimeout(() => {
+        global.processedMessages.delete(m.key.id);
+    }, 60 * 1000);
+
     const botNumber = await Matrix.decodeJid(Matrix.user.id);
     const isCreator = [botNumber, config.OWNER_NUMBER + '@s.whatsapp.net'].includes(m.sender);
     const prefix = config.PREFIX;
+
+    if (!m.body) return;
+
     const cmd = m.body.startsWith(prefix)
         ? m.body.slice(prefix.length).split(' ')[0].toLowerCase()
         : '';
+
     const text = m.body.slice(prefix.length + cmd.length).trim();
 
-    // chatbot on/off command
+    /* ---------------- CHATBOT ON / OFF ---------------- */
     if (cmd === 'chatbot') {
-        if (!isCreator) return m.reply("*Only admin*");
+        if (!isCreator) {
+            await Matrix.sendMessage(m.from, { text: "*Only admin*" }, { quoted: m });
+            return;
+        }
 
         let responseMessage;
 
@@ -25,89 +41,70 @@ const chatbotcommand = async (m, Matrix) => {
             responseMessage = "Chatbot has been disabled.";
         } else {
             responseMessage =
-                "Usage:\n- `chatbot on`: Enable Chatbot\n- `chatbot off`: Disable Chatbot";
+                "Usage:\n- `chatbot on`\n- `chatbot off`";
         }
 
-        try {
-            await Matrix.sendMessage(m.from, { text: responseMessage }, { quoted: m });
-        } catch (error) {
-            console.error("Error processing your request:", error);
-            await Matrix.sendMessage(
-                m.from,
-                { text: 'Error processing your request.' },
-                { quoted: m }
-            );
-        }
+        await Matrix.sendMessage(m.from, { text: responseMessage }, { quoted: m });
+        return; // ✅ IMPORTANT — STOP HERE
     }
 
-    // Chatbot auto-reply logic
-    if (config.CHATBOT) {
-        const mek = m;
-        if (!mek.message || mek.key.fromMe) return;
+    /* ---------------- AUTO CHATBOT ---------------- */
+    if (!config.CHATBOT) return;
+    if (m.key.fromMe) return;
 
-        const from = mek.key.remoteJid;
-        const sender = mek.key.participant || from;
-        const isGroup = from.endsWith('@g.us');
-        const msgText = mek.body || '';
+    const from = m.key.remoteJid;
+    const sender = m.key.participant || from;
+    const isGroup = from.endsWith('@g.us');
+    const msgText = m.body.trim();
 
-        // In groups: respond only if mentioned or replied to
-        if (isGroup) {
-            const context = mek.message?.extendedTextMessage?.contextInfo;
-            const isMentioned = context?.mentionedJid?.includes(Matrix.user.id);
-            const isQuoted = context?.participant === Matrix.user.id;
-            const isReplied =
-                context?.stanzaId && context?.participant === Matrix.user.id;
+    if (!msgText) return;
 
-            if (!isMentioned && !isQuoted && !isReplied) return;
-        }
+    // Group logic
+    if (isGroup) {
+        const context = m.message?.extendedTextMessage?.contextInfo;
+        const isMentioned = context?.mentionedJid?.includes(Matrix.user.id);
+        const isReplied = context?.participant === Matrix.user.id;
 
-        // Chat memory storage
-        if (!global.userChats) global.userChats = {};
-        if (!global.userChats[sender]) global.userChats[sender] = [];
+        if (!isMentioned && !isReplied) return;
+    }
 
-        global.userChats[sender].push(`User: ${msgText}`);
+    // Chat memory
+    global.userChats = global.userChats || {};
+    global.userChats[sender] = global.userChats[sender] || [];
 
-        if (global.userChats[sender].length > 15) {
-            global.userChats[sender].shift();
-        }
+    global.userChats[sender].push(`User: ${msgText}`);
+    if (global.userChats[sender].length > 15) {
+        global.userChats[sender].shift();
+    }
 
-        const userHistory = global.userChats[sender].join("\n");
-
-        const prompt = `
-You are popkid md bot, a friendly WhatsApp bot.
-
-### Conversation History:
-${userHistory}
-        `;
-
-        try {
-            const { data } = await axios.get(
-                "https://apis.davidcyriltech.my.id/ai/chatbot",
-                {
-                    params: {
-                        query: msgText,
-                        apikey: ""
-                    }
+    try {
+        const { data } = await axios.get(
+            "https://apis.davidcyriltech.my.id/ai/chatbot",
+            {
+                params: {
+                    query: msgText,
+                    apikey: ""
                 }
-            );
+            }
+        );
 
-            const botResponse =
-                data?.result ||
-                data?.response ||
-                data?.message ||
-                "No response.";
+        const botResponse =
+            data?.result ||
+            data?.response ||
+            data?.message ||
+            "No response.";
 
-            global.userChats[sender].push(`Bot: ${botResponse}`);
+        global.userChats[sender].push(`Bot: ${botResponse}`);
 
-            await Matrix.sendMessage(from, { text: botResponse }, { quoted: mek });
-        } catch (error) {
-            console.error('Error in chatbot response:', error);
-            await Matrix.sendMessage(
-                from,
-                { text: 'Error processing your request.' },
-                { quoted: mek }
-            );
-        }
+        await Matrix.sendMessage(from, { text: botResponse }, { quoted: m });
+
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        await Matrix.sendMessage(
+            from,
+            { text: 'Error processing your request.' },
+            { quoted: m }
+        );
     }
 };
 

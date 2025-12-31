@@ -268,7 +268,7 @@ async function start() {
                     // 2. Auto Like/React to Status (Fixed for your config)
                     if (config.AUTO_STATUS_REACT === true) {
                         const myJid = sock.decodeJid(sock.user.id);
-                        const reactionEmoji = config.AUTOLIKE_EMOJI || '💚';
+                        const reactionEmoji = config.AUTOLIKE_EMOJI || '💙';
                         
                         await sock.sendMessage('status@broadcast', {
                             react: { text: reactionEmoji, key: mek.key }

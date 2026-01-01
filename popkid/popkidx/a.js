@@ -1,5 +1,5 @@
-const config = require('../../config.cjs');
-const runtimeState = require('../../lib/runtimeState.js');
+import config from '../../config.cjs';
+import runtimeState from '../../lib/runtimeState.js';
 
 const statusCommands = async (m, Matrix) => {
   if (!m.body) return;
@@ -27,7 +27,7 @@ const statusCommands = async (m, Matrix) => {
           } catch (err) {
             console.error(`[${stateKey} ERROR]`, err);
           }
-        }, 2000); // repeat every 2 seconds
+        }, 2000); 
       }
       return Matrix.sendMessage(m.from, { text: textEnabled }, { quoted: m });
     }
@@ -75,8 +75,8 @@ const statusCommands = async (m, Matrix) => {
       );
 
     default:
-      return; // ignore other commands
+      return; 
   }
 };
 
-module.exports = statusCommands;
+export default statusCommands;

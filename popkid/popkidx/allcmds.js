@@ -5,55 +5,56 @@ import config from '../../config.cjs';
 const allCmdsCommand = async (m, sock) => {
   const prefix = config.PREFIX;
 
+  // Check if the message starts with the prefix
   if (!m.body?.startsWith(prefix)) return;
 
   const cmd = m.body.slice(prefix.length).trim().split(' ')[0].toLowerCase();
 
+  // Check if the command is 'allcmds'
   if (cmd !== 'allcmds') return;
 
-  // ✅ Deployer / Owner JID
-  const ownerJid = config.OWNER_NUMBER + '@s.whatsapp.net';
+  /** * OWNER RESTRICTION REMOVED 
+   * Anyone can now trigger the logic below.
+   */
 
-  // ❌ Block non-owner
-  if (m.sender !== ownerJid) {
-    await m.React('❌');
-    return sock.sendMessage(
-      m.from,
-      { text: '❌ Only the bot owner can use this command.' },
-      { quoted: m }
-    );
-  }
-
+  // Define the path to your plugins/commands folder
   const folderPath = path.resolve(process.cwd(), '../popkid/popkidx');
 
-  // Check folder exists
+  // Check if the folder exists on the server
   if (!fs.existsSync(folderPath)) {
     await m.React('❌');
     return sock.sendMessage(
       m.from,
-      { text: `❌ Folder not found.` },
+      { text: `❌ Folder not found at: ${folderPath}` },
       { quoted: m }
     );
   }
 
   try {
+    // Read files in the directory
     const files = fs.readdirSync(folderPath);
-    const jsFiles = files.filter(file => file.endsWith('.js'));
+    // Filter to only show .js files and remove the extension for a cleaner look
+    const jsFiles = files
+      .filter(file => file.endsWith('.js'))
+      .map(file => file.replace('.js', ''));
 
-    if (!jsFiles.length) {
+    if (jsFiles.length === 0) {
       await m.React('❌');
       return sock.sendMessage(
         m.from,
-        { text: '❌ No command files found.' },
+        { text: '❌ No command files found in the directory.' },
         { quoted: m }
       );
     }
 
+    // Success: Send the list of commands
     await m.React('✅');
+    const commandList = jsFiles.map((f, i) => `${i + 1}. ${f}`).join('\n');
+    
     return sock.sendMessage(
       m.from,
       {
-        text: `*ʜᴇʀᴇ ᴀʀᴇ ᴘᴏᴘᴋɪᴅ ᴍᴅ ᴘʟᴜɢɪɴ ғᴏʟᴅᴇʀs*\n\n${jsFiles.join('\n')}`,
+        text: `*ʜᴇʀᴇ ᴀʀᴇ ᴘᴏᴘᴋɪᴅ ᴍᴅ ᴘʟᴜɢɪɴs*\n\n${commandList}`,
       },
       { quoted: m }
     );
@@ -63,7 +64,7 @@ const allCmdsCommand = async (m, sock) => {
     await m.React('❌');
     return sock.sendMessage(
       m.from,
-      { text: '❌ Failed to read command folder.' },
+      { text: '❌ Failed to read the command folder.' },
       { quoted: m }
     );
   }

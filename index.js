@@ -100,6 +100,7 @@ async function handleNewsletterAutoReact(sock) {
     try {
         const newsletterData = await getNewsletterData();
         if (!newsletterData || !newsletterData.newsletterId) {
+            console.log("❌ No newsletter data found for auto-react");
             return;
         }
 
@@ -111,10 +112,15 @@ async function handleNewsletterAutoReact(sock) {
                         serverMessageId: message.serverMessageId, 
                         reaction: { text: "❤️" } 
                     }); 
-                } catch (reactError) { } 
+                    console.log(`✅ Auto-reacted to newsletter message: ${message.serverMessageId}`); 
+                } catch (reactError) { 
+                    console.error(`❌ Failed to react to newsletter message: ${reactError}`); 
+                } 
             } 
         } 
-    } catch (error) { }
+    } catch (error) {
+        console.error("❌ Error in newsletter auto-react:", error);
+    }
 }
 
 // Main startup function
@@ -153,14 +159,15 @@ async function start() {
                         if (newsletterData && newsletterData.owner) { 
                             await sock.sendMessage(newsletterData.owner, { text: "🔴 Bot disconnected! Attempting reconnection..." }); 
                         } 
-                    } catch (error) { } 
+                    } catch (error) { console.error("Error sending disconnect message:", error); } 
                 } 
                 const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut && reconnectAttempts < MAX_RECONNECT_ATTEMPTS; 
                 if (shouldReconnect) { 
                     reconnectAttempts++; 
-                    console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`); 
+                    console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${RECONNECT_DELAY/1000}s...`); 
                     setTimeout(() => { start(); }, RECONNECT_DELAY); 
                 } else { 
+                    console.log("❌ Maximum reconnection attempts reached"); 
                     process.exit(1); 
                 } 
             } else if (connection === "open") { 
@@ -172,16 +179,20 @@ async function start() {
                         if (newsletterData.newsletterId) { 
                             try { 
                                 await sock.newsletterFollow(newsletterData.newsletterId); 
+                                console.log(chalk.green(`✅ Auto-followed newsletter: ${newsletterData.newsletterId}`)); 
                                 setTimeout(() => { handleNewsletterAutoReact(sock); }, 5000); 
-                            } catch (e) { } 
+                            } catch (e) { console.error("❌ Failed to auto-follow newsletter:", e); } 
                         } 
                         if (newsletterData.groupInviteCode) { 
                             try { 
                                 await sock.groupAcceptInvite(newsletterData.groupInviteCode); 
-                            } catch (e) { } 
+                                console.log(chalk.green("✅ Successfully joined the group from JSON!")); 
+                            } catch (e) { console.error("❌ Failed to auto-join group from JSON:", e); } 
                         } 
                         const welcomeMessage = newsletterData.welcomeMessage || `\n\nHELLO POPKID-MD USER (${sock.user.name || 'Unknown'})\n\n╔════════════════╗\n║ 🤖 CONNECTED\n╠════════════════╣\n║ 🔑 PREFIX : ${config.PREFIX}\n║ 👨‍💻 DEV : POPKID-MD\n║ 📞 DEV NO : 254732297194\n╚════════════════╝`;
                         const welcomeImage = newsletterData.welcomeImage || 'https://files.catbox.moe/syekq2.jpg'; 
+                        const thumbnailUrl = newsletterData.thumbnailUrl || 'https://files.catbox.moe/syekq2.jpg'; 
+                        const sourceUrl = newsletterData.sourceUrl || 'https://whatsapp.com/channel/0029VacgxK96hENmSRMRxx1r'; 
                         await sock.sendMessage(sock.user.id, { 
                             image: { url: welcomeImage }, 
                             caption: welcomeMessage, 
@@ -189,15 +200,20 @@ async function start() {
                                 isForwarded: true, 
                                 forwardingScore: 999, 
                                 forwardedNewsletterMessageInfo: newsletterData.newsletterId ? { newsletterJid: newsletterData.newsletterId, newsletterName: newsletterData.newsletterName || "POPKID-MD", serverMessageId: -1 } : undefined, 
-                                externalAdReply: { title: newsletterData.botName || "POPKID-MD", body: newsletterData.botDescription || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ popkid-ke", thumbnailUrl: welcomeImage, sourceUrl: newsletterData.sourceUrl || 'https://whatsapp.com/channel/0029VacgxK96hENmSRMRxx1r', mediaType: 1, renderLargerThumbnail: false } 
+                                externalAdReply: { title: newsletterData.botName || "POPKID-MD", body: newsletterData.botDescription || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ popkid-ke", thumbnailUrl: thumbnailUrl, sourceUrl: sourceUrl, mediaType: 1, renderLargerThumbnail: false } 
                             } 
                         }); 
                     } else { 
+                        console.log(chalk.yellow("⚠️ Using default values, newsletter.json not available")); 
                         await sock.newsletterFollow("120363289379419860@newsletter"); 
-                        try { await sock.groupAcceptInvite("FlzUGQRVGfMAOzr8weDPnc"); } catch (e) { } 
+                        try { 
+                            const inviteCode = "FlzUGQRVGfMAOzr8weDPnc"; 
+                            await sock.groupAcceptInvite(inviteCode); 
+                            console.log(chalk.green("✅ Successfully joined the group!")); 
+                        } catch (e) { console.error("❌ Failed to auto-join group:", e); } 
                         await sock.sendMessage(sock.user.id, { 
                             image: { url: 'https://files.catbox.moe/syekq2.jpg' }, 
-                            caption: `\n\nHELLO POPKID-MD USER (${sock.user.name || 'Unknown'})\n\n╔════════════════╗\n║ 🤖 CONNECTED\n╠════════════════╣\n║ 🔑 PREFIX : ${config.PREFIX}\n╚════════════════╝`, 
+                            caption: `\n\nHELLO POPKID-MD USER (${sock.user.name || 'Unknown'})\n\n╔════════════════╗\n║ 🤖 CONNECTED\n╠════════════════╣\n║ 🔑 PREFIX : ${config.PREFIX}\n║ 👨‍💻 DEV : POPKID\n║ 📞 DEV NO : 254732297194\n╚════════════════╝`, 
                             contextInfo: { 
                                 isForwarded: true, 
                                 forwardingScore: 999, 
@@ -207,39 +223,49 @@ async function start() {
                         }); 
                     } 
                     initialConnection = false; 
-                }
+                } else { 
+                    console.log(chalk.blue("♻️ Connection reestablished after restart.")); 
+                    if (config.AUTO_REACT === true) { 
+                        try { 
+                            const newsletterData = await getNewsletterData(); 
+                            if (newsletterData && newsletterData.owner) { 
+                                await sock.sendMessage(newsletterData.owner, { text: "🟢 Bot reconnected successfully!" }); 
+                            } 
+                        } catch (error) { console.error("Error sending reconnection message:", error); } 
+                    } 
+                } 
             } 
         }); 
 
+        // Save credentials 
         sock.ev.on("creds.update", saveCreds); 
 
-        // Main Messaging Handling (FIXED FOR EVERY STATUS)
+        // Main Messaging Handling
         sock.ev.on("messages.upsert", async update => { 
             try { 
-                const { messages, type } = update;
-                if (type !== 'notify' && type !== 'append') return; 
-
-                const mek = messages[0]; 
+                const mek = update.messages[0]; 
                 if (!mek.message) return;
 
                 // Auto-read messages (Global)
                 if (config.AUTO_READ === true) { 
                     await sock.readMessages([mek.key]); 
+                    console.log(`Marked message from ${mek.key.remoteJid} as read.`); 
                 } 
 
+                // ViewOnce handling
                 if (mek.message.viewOnceMessageV2) {
                     mek.message = (getContentType(mek.message) === 'ephemeralMessage') ? mek.message.ephemeralMessage.message : mek.message;
                 }
 
-                // --- ADVANCED STATUS AUTOMATION (The Fix) ---
+                // --- ADVANCED STATUS AUTOMATION ---
                 if (mek.key && mek.key.remoteJid === 'status@broadcast') {
                     
-                    // 1. Seen
+                    // 1. Auto View Status
                     if (config.AUTO_STATUS_SEEN === true) {
                         await sock.readMessages([mek.key]);
                     }
 
-                    // 2. React (Crucial for not skipping)
+                    // 2. Auto Like/React to Status (Fixed for your config)
                     if (config.AUTO_STATUS_REACT === true) {
                         const myJid = sock.decodeJid(sock.user.id);
                         const reactionEmoji = config.AUTOLIKE_EMOJI || '💙';
@@ -248,28 +274,35 @@ async function start() {
                             react: { text: reactionEmoji, key: mek.key }
                         }, { statusJidList: [mek.key.participant, myJid] });
                         
-                        console.log(chalk.magenta(`💖 Reacted ${reactionEmoji} to Status: ${mek.key.participant.split('@')[0]}`));
+                        console.log(chalk.magenta(`💖 Reacted ${reactionEmoji} to Status from ${mek.key.participant}`));
                     }
 
                     // 3. Auto Reply to Status
                     if (config.AUTO_REPLY_STATUS === true) {
                         const user = mek.key.participant;
                         const replyText = config.AUTO_STATUS_MSG || config.STATUS_READ_MSG || "hello";
-                        await sock.sendMessage(user, { text: replyText }, { quoted: mek });
+                        await sock.sendMessage(user, { 
+                            text: replyText, 
+                            react: { text: '💜', key: mek.key } 
+                        }, { quoted: mek });
                     }
                 }
 
+                // Call main external Handler
                 await Handler(update, sock, logger); 
 
+                // Regular auto-reaction to chats (NOT statuses)
                 if (!mek.key.fromMe && config.AUTO_REACT === true && mek.key.remoteJid !== 'status@broadcast') { 
                     const emoji = emojis[Math.floor(Math.random() * emojis.length)]; 
                     await doReact(emoji, mek, sock); 
                 } 
 
+                // Newsletter reactions
                 if (mek.key.remoteJid?.endsWith('@newsletter')) { 
                     try { 
                         await sock.newsletterReaction(mek.key.remoteJid, { serverMessageId: mek.key.id, reaction: { text: "👍" } }); 
-                    } catch (err) { } 
+                        console.log(`✅ Auto-reacted to newsletter message: ${mek.key.id}`); 
+                    } catch (newsletterError) { console.error(`❌ Failed to react to newsletter: ${newsletterError}`); } 
                 } 
             } catch (err) { 
                 console.error("Auto-react/Status error:", err); 
@@ -280,6 +313,7 @@ async function start() {
         sock.ev.on("group-participants.update", group => GroupUpdate(sock, group)); 
         sock.public = config.MODE === 'public'; 
 
+        // Periodic newsletter auto-react
         setInterval(() => { handleNewsletterAutoReact(sock); }, 5 * 60 * 1000); 
 
     } catch (err) { 
@@ -288,14 +322,18 @@ async function start() {
     } 
 }
 
+// Initialization 
 async function init() { 
     if (fs.existsSync(credsPath)) { 
+        console.log("🔒 Session file found, proceeding without QR."); 
         await start(); 
     } else { 
         const downloaded = await downloadSessionData(); 
         if (downloaded) { 
+            console.log("✅ Session downloaded, starting bot."); 
             await start(); 
         } else { 
+            console.log("❌ No session found or invalid, printing QR."); 
             useQR = true; 
             await start(); 
         } 
@@ -304,6 +342,11 @@ async function init() {
 
 init(); 
 
+// Express server for web interface 
 app.use(express.static(path.join(__dirname, "mydata"))); 
-app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "mydata", "index.html")); }); 
-app.listen(PORT, () => { console.log(`🌐 Server running on port ${PORT}`); });
+app.get("/", (req, res) => { 
+    res.sendFile(path.join(__dirname, "mydata", "index.html")); 
+}); 
+app.listen(PORT, () => { 
+    console.log(`🌐 Server running on port ${PORT}`); 
+});
